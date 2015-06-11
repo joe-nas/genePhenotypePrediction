@@ -3,10 +3,16 @@ library(GEOquery)
 library(plyr)
 library(data.table)
 library(caret)
-library(doMC)
 # download database
 # if(!file.exists('GEOmetadb.sqlite')) getSQLiteFile()
 
+# library(doParallel)
+# nodes <- detectCores()
+# cl <- makeCluster(6)
+# registerDoParallel(cl)
+#stopCluster(cl)
+library(doMC)
+registerDoMC(18)
 
 
 
@@ -51,8 +57,8 @@ downLoadGDS <- function(gds, download_dest = ".", method = "dl" ){
 
 
 # downloaden
-library(doMC)
-registerDoMC(4)
+# library(doMC)
+# registerDoMC(4)
 expression_data <- llply(rev(seq_along(gds)), function(i){
   cat(gds[[i]]$gpl,":")
   alply(gds[[i]], 1, function(y){
@@ -73,12 +79,13 @@ soft2dt <- function(filepath){
               na.strings = 'null', sep="\t", header = T,
               integer64 = "double",
               verbose = F)[, .SD,, c("ID_REF","IDENTIFIER")]
-  cat(".")
   return(dt)
 }
 
 softpath <- function(x,i,workingdir,gdsline){
-  x$gds[[i]] <- sprintf("%s/%s/%s/%s/%s.soft.gz", workingdir, gdsline$sample_organism, gdsline$gpl, gdsline$value_type, gdsline$gds)
+  x$gds[[i]] <- sprintf("%s/%s/%s/%s/%s.soft.gz", workingdir, 
+                        gdsline$sample_organism, gdsline$gpl, 
+                        gdsline$value_type, gdsline$gds)
   invisible()
 }
 
@@ -91,8 +98,6 @@ savedt <- function(gpldtpath, dt){
   write.table(dt ,file = gpldtpath, col.names = T, row.names = F, sep = ",")
 }
 
-
-registerDoMC(3)
 
 e <- new.env()
 e$gds <- gds
@@ -116,17 +121,16 @@ length(e$gds)
 
 modifyl(e,"gds",Filter(length, e$gds))
 
-registerDoMC(12)
-l_ply(seq_along(e$gds)[1:5], function(i){
+l_ply(seq_along(e$gds)[1:20], function(i){
   modify(e,i,llply(e$gds[[i]], soft2dt, .parallel = T))
   invisible()
 })
 
 
-l_ply(seq_along(e$gds)[1:5], function(i){
-  modify(e,i, Reduce(function(x,y) x[y], e$gds[[i]]))
+l_ply(seq_along(e$gds)[1:20], function(i){
+  modify(e,i, Reduce(function(k,j) k[j], Map(function(z) return(z) ,e$gds[[i]])))
   invisible()
-})
+},.parallel = F)
 
 modifyl(e,"gds", Filter(function(x) dim(x)[2]>50, e$gds))
 parent.env(e)
@@ -137,7 +141,6 @@ library(caret)
 testdat <- e$gds[[3]]
 
 
-# Sys.setenv(OMP_NUM_THREADS=6,OPENBLAS_NUM_THREADS=6)
 
 dtProcessing <- function(dt){
   # imputing missing values
@@ -161,6 +164,12 @@ dtProcessing <- function(dt){
 }
 
 testres<-dtProcessing(testdat)
+
+euc.dist <- function(x1, x2) sqrt(sum((x1 - x2) ^ 2))
+plot((diff(res$Mus_musculus.GPL1261.count[[1]]$Var)/diff(res$Mus_musculus.GPL1261.count[[1]]$PCs)),
+     sqrt(unlist(lapply(seq_along(res$Mus_musculus.GPL1261.count[[1]]$Var),
+       function(x) {euc.dist(res$Mus_musculus.GPL1261.count[[1]]$Var[x],
+                      res$Mus_musculus.GPL1261.count[[1]]$Var[x+1])}))[-1]))
 
 
 library(lattice)
