@@ -91,73 +91,8 @@ savedt <- function(gpldtpath, dt){
   write.table(dt ,file = gpldtpath, col.names = T, row.names = F, sep = ",")
 }
 
-<<<<<<< HEAD
+
 registerDoMC(3)
-
-
-
-e <- new.env()
-e$gds <- gds
-
-modify <- function(x, i, arg){
-  x$gds[[i]] <- arg
-  invisible()
-}
-
-modifyl <- function(x,list_name, arg){
-  x[[list_name]] <- arg
-  invisible()
-}
-
-l_ply(seq_along(e$gds), function(i){
-  softpath(e,i,".",e$gds[[i]])
-  modify(e, i, e$gds[[i]][file.exists(e$gds[[i]])])
-  invisible()
-  })
-length(e$gds)
-=======
-registerDoMC(1)
-Sys.setenv(OPENBLAS_NUM_THREADS = 4)
-Sys.getenv("OPENBLAS_NUM_THREADS")
-preprocessData <- function(dt){
-  require(caret)
-  dt_dim <- dim(dt)
-  PreProcValues <- preProcess(dt[,(.SD),.SDcols = grep("GSM",names(dt))], 
-                              method = c("center","scale","medianImpute"))
-  svd_data <- svd(
-    predict(PreProcValues, dt[,(.SD),.SDcols = grep("GSM",names(dt))]),
-    nu = dt_dim[1], nv = dt_dim[2])
-  var_explained <- data.frame(PCs = 1:length(svd_data$d), Var = cumsum(svd_data$d/sum(svd_data$d)))
-  nfit <- round(log2(length(var_explained$PCs)))
-  so_model <- lm(PCs~poly(Var,2,raw=T), data = var_explained[1:nfit,])
-  n_pcs <- predict(so_model, newdata = data.frame(Var=1))
-  n_pcs <- 1:round(n_pcs)
-  dat_reduced <- data.table(svd_data$u[,n_pcs] %*% diag(svd_data$d[n_pcs], length(n_pcs), length(n_pcs)))
-  return(list(var_explained = var_explained, 
-              so_model = so_model,
-              data.table(
-                dt[,list(ID_REF,IDENTIFIER)], 
-                dat_reduced, 
-                key = c("ID_REF","IDENTIFIER")) 
-              ))
-}
-
-
-library(lattice)
-xyplot(Var~PCs, data = result$var_explained,
-       so_model = result$so_model,
-       panel = function(x,y,so_model,...){
-         target_pc <- round(predict(so_model,data.frame(Var=1)))
-         xso <- predict(so_model, newdata = data.frame(Var = result$var_explained$Var))
-         panel.xyplot(x,y,...)
-         panel.xyplot(xso,y, ..., type = "l")
-         panel.abline(v = target_pc)
-})
-
-
-
-
-
 
 e <- new.env()
 e$gds <- gds
