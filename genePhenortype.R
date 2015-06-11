@@ -137,11 +137,6 @@ parent.env(e)
 
 
 
-library(caret)
-testdat <- e$gds[[3]]
-
-
-
 dtProcessing <- function(dt){
   # imputing missing values
   preproc <- preProcess(dt[,3:ncol(dt),with=F], 
@@ -160,10 +155,19 @@ dtProcessing <- function(dt){
   print(n_pcs)
   #dt[dt[,1:2, with=F],data.table((as.matrix(dt[,3:ncol(dt),with=F]) %*% t(dt_svd$v))[,1:n_pcs])]
   return(list(var_explained,fit))
-  
 }
 
-testres<-dtProcessing(testdat)
+
+testres<-lapply(e$gds[1:5],dtProcessing)
+
+testres[[1]][[1]]
+direction <- function(df){
+  atan2(df[,Var],df[,PCs])
+}
+direction(testres[[6]][[1]])
+
+plot(testres[[5]][[1]])
+
 
 euc.dist <- function(x1, x2) sqrt(sum((x1 - x2) ^ 2))
 plot((diff(res$Mus_musculus.GPL1261.count[[1]]$Var)/diff(res$Mus_musculus.GPL1261.count[[1]]$PCs)),
