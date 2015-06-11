@@ -199,84 +199,8 @@ parent.env(e)
 
 
 library(caret)
-testdat <- e$gds[[1]]
-
-Sys.setenv(OMP_NUM_THREADS=6,OPENBLAS_NUM_THREADS=6)
-
-dtProcessing <- function(dt){
-  preproc <- preProcess(dt[,3:ncol(dt),with=F], 
-                        method = c("center","scale","medianImpute"))
-  dt[,3:ncol(dt) := data.table(predict(preproc,dt[,3:ncol(dt),with=F])), with=F]
-  dt_svd <- svd(as.matrix(dt[,3:ncol(dt), with = F]),nu = nrow(dt),nv = ncol(dt)-2)
-  var_explained <- data.table(PCs = 1:length(dt_svd$d), Var = cumsum(dt_svd$d/sum(dt_svd$d)))
-  pcs_fit <- round(log2(length(var_explained$PCs)))
-  fit <- lm(PCs~poly(Var,2,raw=T), data = var_explained[1:pcs_fit,])
-  n_pcs <- predict(fit, newdata = data.frame(Var=1))
-  n_pcs <- 1:round(n_pcs)
-  dt[,3:ncol(dt) := NULL]
-  dt[data.table(dt_svd$u[,n_pcs] %*% diag(dt_svd$d[n_pcs], length(n_pcs), length(n_pcs)))]
-  
-}
-
-dtProcessing(testdat)
-
-
-testpreproc <- preProcess(testdat[,3:ncol(testdat),with=F], 
-                          method = c("center","scale","medianImpute"))
-testmat <- as.matrix(testdat[,3:ncol(testdat) := data.table(predict(testpreproc,testdat[,3:ncol(testdat),with=F])), with=F][,3:ncol(testdat),with=F])
-
-mysvd <- svd(testmat, nu = nrow(testmat), nv = ncol(testmat))
-
-
-
-
-
-
-
-
-
-
-
-
-grep("GSM",names(testdat),value = T)
-
-l_ply(seq_along(e$gds)[1:3], function(i){
-  modify(e,i,preprocessData(e$gds[[i]]))
-  invisible()
-}, .progress = "text")
-
-
-
-
-
-
-
-
-
-
->>>>>>> 065ca5314f42663fa81bc4c37b007ffd6c0096a6
-
-modifyl(e,"gds",Filter(length, e$gds))
-
-# registerDoMC(12)
-l_ply(seq_along(e$gds)[1:5], function(i){
-  modify(e,i,llply(e$gds[[i]], soft2dt, .parallel = T))
-  invisible()
-})
-
-
-l_ply(seq_along(e$gds)[1:5], function(i){
-  modify(e,i, Reduce(function(x,y) x[y], e$gds[[i]]))
-  invisible()
-})
-
-modifyl(e,"gds", Filter(function(x) dim(x)[2]>50, e$gds))
-parent.env(e)
-
-
-
-library(caret)
 testdat <- e$gds[[3]]
+
 
 # Sys.setenv(OMP_NUM_THREADS=6,OPENBLAS_NUM_THREADS=6)
 
