@@ -12,7 +12,7 @@ library(caret)
 # registerDoParallel(cl)
 #stopCluster(cl)
 library(doMC)
-registerDoMC(18)
+registerDoMC(10)
 
 
 
@@ -121,59 +121,52 @@ length(e$gds)
 
 modifyl(e,"gds",Filter(length, e$gds))
 
-l_ply(seq_along(e$gds)[1:20], function(i){
+l_ply(seq_along(e$gds)[1:10], function(i){
   modify(e,i,llply(e$gds[[i]], soft2dt, .parallel = T))
   invisible()
 })
 
 
-l_ply(seq_along(e$gds)[1:20], function(i){
+l_ply(seq_along(e$gds)[1:10], function(i){
   modify(e,i, Reduce(function(k,j) k[j], Map(function(z) return(z) ,e$gds[[i]])))
   invisible()
 },.parallel = F)
 
 modifyl(e,"gds", Filter(function(x) dim(x)[2]>50, e$gds))
-parent.env(e)
 
 
 
-dtProcessing <- function(dt){
+dtProcessing <- function(e,i){
   # imputing missing values
-  preproc <- preProcess(dt[,3:ncol(dt),with=F], 
+  preproc <- preProcess(e$gds[[i]][,3:ncol(e$gds[[i]]),with=F], 
                         method = c("center","scale","medianImpute"))
-  dt[,3:ncol(dt) := data.table(predict(preproc,dt[,3:ncol(dt),with=F])), with=F]
+  e$gds[[i]][,3:ncol(e$gds[[i]]) := data.table(predict(preproc,e$gds[[i]][,3:ncol(e$gds[[i]]),with=F])), with=F]
   
   #extracting right singular values
-  dt_svd <- svd(dt[,3:ncol(dt), with = F], nv = ncol(dt)-2, nu = 0)
+  dt_svd <- svd(e$gds[[i]][,3:ncol(e$gds[[i]]), with = F], nv = ncol(e$gds[[i]])-2, nu = 0)
   var_explained <- data.table(PCs = 1:length(dt_svd$d), Var = cumsum(dt_svd$d/sum(dt_svd$d)))
-  
-  
-  pcs_fit <- round(log2(length(var_explained$PCs)))
-  fit <- lm(PCs~poly(Var,2,raw=T), data = var_explained[1:pcs_fit,])
-  n_pcs <- predict(fit, newdata = data.frame(Var=1))
-  n_pcs <- n_pcs
-  print(n_pcs)
-  #dt[dt[,1:2, with=F],data.table((as.matrix(dt[,3:ncol(dt),with=F]) %*% t(dt_svd$v))[,1:n_pcs])]
-  return(list(var_explained,fit))
+  slope <- diff(var_explained[,Var])/diff(var_explained[,PCs])
+  n_pcs <- max(which(slope > quantile(slope,.90)))
+  e$gds[[i]][e$gds[[i]][,1:2, with=F],data.table((as.matrix(e$gds[[i]][,3:ncol(e$gds[[i]]),with=F]) %*% t(dt_svd$v))[,1:n_pcs])]
+  write.table(e$gds[[i]],file = names(e$gds[i]), sep = ",",col.names = F,row.names = T,quote = F)
+  return(list(var_explained))
 }
 
 
-testres<-lapply(e$gds[1:5],dtProcessing)
-
-testres[[1]][[1]]
-direction <- function(df){
-  atan2(df[,Var],df[,PCs])
-}
-direction(testres[[6]][[1]])
-
-plot(testres[[5]][[1]])
 
 
-euc.dist <- function(x1, x2) sqrt(sum((x1 - x2) ^ 2))
-plot((diff(res$Mus_musculus.GPL1261.count[[1]]$Var)/diff(res$Mus_musculus.GPL1261.count[[1]]$PCs)),
-     sqrt(unlist(lapply(seq_along(res$Mus_musculus.GPL1261.count[[1]]$Var),
-       function(x) {euc.dist(res$Mus_musculus.GPL1261.count[[1]]$Var[x],
-                      res$Mus_musculus.GPL1261.count[[1]]$Var[x+1])}))[-1]))
+
+testres<-lapply(seq_along(e$gds)[1:4],function(i) dtProcessing(e,i))
+llply(seq_along(e$gds),function(i)names(e$gds[i]))
+
+
+dat <- testres[[4]][[1]]
+diffy <- diff(dat[,Var])
+slope <- diff(dat[,Var])/diff(dat[,PCs])
+
+plot(dat)
+abline(v=max(which(slope > quantile(slope,.90))))
+
 
 
 library(lattice)
