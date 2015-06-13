@@ -12,4 +12,3 @@ softparser <- function(filepath){
               integer64 = "double",
               verbose = F)[, .SD,, c("ID_REF","IDENTIFIER")]
   invisible(dt)}
-#
