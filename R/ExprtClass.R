@@ -3,6 +3,7 @@
 #' @exportClass Expr
 
 
+
 Expr.gds.dataTypes <-  setClassUnion("Expr.gds.dataTypes",
                                      c("list", "data.frame"))
 
@@ -13,8 +14,9 @@ Expr <- setRefClass(
     valueType = "character",
     gpl = "character",
     gds = "character",
-    sampleCounts = "numeric",
+    sampleCounts = "integer",
     gdsData = "Expr.gds.dataTypes",
-    gdsRed = "data.table"
+    gdsRed = "data.table",
+    prediction = "data.frame"
   )
 )
