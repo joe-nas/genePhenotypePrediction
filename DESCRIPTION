@@ -2,7 +2,7 @@ Package: exprt
 Type: Package
 Title: Uses a gene list describing your favourite phenotype and predicts genes
 based on co-expression which may be also associated to that phenotype
-Version: 0.1
+Version: 0.1.1
 Date: 2015-06-13
 Author: Jonas Falck
 Maintainer: Jonas.Falck@student.ru.nl
