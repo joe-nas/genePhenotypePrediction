@@ -5,7 +5,7 @@ Expr$methods(
                          organism, gpl,
                          valueType, gds)
     filepaths <- Filter(file.exists, filepaths)
-    gdsData <<- llply(filepaths, softparser,
+    gdsData <<- plyr::llply(filepaths, softparser,
                       .parallel = T)
   }
 )

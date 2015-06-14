@@ -17,6 +17,19 @@ Expr <- setRefClass(
     sampleCounts = "integer",
     gdsData = "Expr.gds.dataTypes",
     gdsRed = "data.table",
-    prediction = "data.frame"
+    n_pcs = "integer",
+    var_explained = "data.frame",
+    #prediction = "data.frame"
+    prediction = "ANY"
   )
 )
+#
+# ResultClass <- setRefClass(
+#   Class = "ResultClass",
+#   fields = list(
+#     var_explained = "data.frame",
+#     n_pcs = "interger",
+#     fit = "list",
+#     prediction = "data.frame",
+#   )
+# )
