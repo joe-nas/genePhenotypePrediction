@@ -10,5 +10,6 @@ softparser <- function(filepath){
                              rep("numeric",gsmcolumns)),
               na.strings = 'null', sep="\t", header = T,
               integer64 = "double",
-              verbose = F)[, .SD,, c("ID_REF","IDENTIFIER")]
-  invisible(dt)}
+              verbose = F)[, .SD,, by=c("ID_REF","IDENTIFIER")]
+  dt <- setkey(dt, IDENTIFIER, ID_REF)[]
+  return(dt[order(IDENTIFIER)][])}
