@@ -1,11 +1,10 @@
 Package: exprt
 Type: Package
 Title: Uses a gene list describing your favourite phenotype and predicts genes
-based on co-expression which may be also associated to that phenotype
 Version: 0.1.1
 Date: 2015-06-13
 Author: Jonas Falck
-Maintainer: Jonas.Falck@student.ru.nl
+Maintainer: Jonas Falck <Jonas.Falck@student.ru.nl>
 Description: Uses a gene list describing your favourite phenotype and predicts genes
 License: What license is it under?
 LazyData: TRUE
@@ -13,4 +12,3 @@ Imports:
   plyr (>= 1.8.2),
   data.table (>= 1.9.4),
   caret (>= 6.0-47)
-
