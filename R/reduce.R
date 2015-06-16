@@ -5,10 +5,10 @@ Expr$methods(
       cat(sprintf("svd\n"))
       svd.res <- svd(gdsData[,3:ncol(gdsData), with = F],
                      nv = ncol(gdsData)-2, nu = 0)
-      rv <<- svd.res$v
+      rv <<- Matrix::as.matrix(svd.res$v)
       sv <<- svd.res$d
       cat(sprintf("projecting\n"))
-      gdssvd <<- data.table(as.matrix(gdsData[,3:ncol(gdsData),with=F]) %*% t(rv))
+      gdssvd <<- data.table(tcrossprod(Matrix::as.matrix(gdsData[,3:ncol(gdsData),with=F]), rv))
       }
 
     var_explained <<- data.frame(PCs = 1:length(sv),

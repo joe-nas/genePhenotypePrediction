@@ -2,6 +2,7 @@
 
 export()
 export(Expr.gds.dataTypes)
+export(Expr.gdssvd.dataTypes)
 export(softparser)
 exportClasses(Expr)
 importClassesFrom(data.table,data.table)
