@@ -19,7 +19,7 @@ Expr$methods(
         rowmed <- suppressWarnings(
           thresh[,median(as.numeric(.SD),na.rm=T),by=1:nrow(thresh)][,V1])
         values <- data.table(
-          as.matrix(gdata::NAToUnknown(thresh[,3:dtdim[2],with=F],0)) + rowmed * miss)
+          as.matrix(gdata::NAToUnknown(thresh[,3:dtdim[2],with=F],0, force = T)) + rowmed * miss)
 #         imputed <- quote(predict(
 #           caret::preProcess(thresh[,3:dtdim[2], with=F],
 #                             method = c("center", "scale", "medianImpute")),

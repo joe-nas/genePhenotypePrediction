@@ -17,10 +17,10 @@ Expr$methods(
       svd(eval(dat),
       nv = ncol(gdsData)-2, nu = 0))
 
-    cat(sprintf("svd\n"))
 
     with(eval(dosvd), {
       exprSvd$d <<- d
+      cat(sprintf("svd\n"))
       dat <- as.matrix(eval(dat))
       cat(sprintf("projecting\n"))
       exprSvd$XV <<- Matrix::tcrossprod(
