@@ -9,8 +9,8 @@ Description: Uses a gene list describing your favourite phenotype and predicts g
 License: What license is it under?
 LazyData: TRUE
 Imports:
+  Matrix (>= 1.2-1),
   plyr (>= 1.8.2),
   data.table (>= 1.9.4),
   caret (>= 6.0-47),
-  corpcor (>= 1.6.7),
-  Matrix (>= 1.2-1)
+  gdata (>=  2.16.1)

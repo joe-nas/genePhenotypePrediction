@@ -1,4 +1,5 @@
 #' @importClassesFrom  data.table data.table
+#' @importClassesFrom  Matrix dgeMatrix
 #' @export Expr.gds.dataTypes Expr.gdssvd.dataTypes
 #' @exportClass Expr
 
@@ -7,7 +8,8 @@
 Expr.gds.dataTypes <- setClassUnion("Expr.gds.dataTypes",
                                     c("list", "data.frame"))
 Expr.gdssvd.dataTypes <- setClassUnion("Expr.gdssvd.dataTypes",
-                                       c("logical", "data.table"))
+                                       c("logical", "data.table",
+                                         "dgeMatrix"))
 
 Expr <- setRefClass(
   Class = "Expr",
@@ -18,21 +20,19 @@ Expr <- setRefClass(
     gds = "character",
     sampleCounts = "integer",
     gdsData = "Expr.gds.dataTypes",
-    gdsRed = "data.table",
-    gdssvd = "Expr.gdssvd.dataTypes",
-    rv = "matrix",
-    sv = "numeric",
+    gdsMissing = "data.table",
+    thresh = "ANY",
+    exprSvd = "ExprSVD",
     n_pcs = "integer",
-    var_explained = "data.frame",
     fit  = "ANY",
     prediction = "ANY"
-  ),
-  methods = list(
-    initialize = function(...){
-      gdssvd <<- FALSE
-      callSuper(...)
-      }
-    )
+  )#,
+#   methods = list(
+#     initialize = function(...){
+#       gdssvd <<- FALSE
+#       callSuper(...)
+#       }
+#     )
 )
 #
 # ResultClass <- setRefClass(

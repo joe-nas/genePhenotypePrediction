@@ -1,23 +1,46 @@
 #'@export
 Expr$methods(
   reduce = function(slope = .80){
-    if(is.data.table(gdssvd) == FALSE){
-      cat(sprintf("svd\n"))
-      svd.res <- svd(gdsData[,3:ncol(gdsData), with = F],
-                     nv = ncol(gdsData)-2, nu = 0)
-      rv <<- Matrix::as.matrix(svd.res$v)
-      sv <<- svd.res$d
+    exprSvd <<- new("ExprSVD",
+                    "organism" = organism,
+                    "gpl" = gpl,
+                    "valueType" = valueType)
+
+    if(all(complete.cases(gdsData))){
+      dat <- quote(gdsData[,3:ncol(gdsData),with=F])
+    }else{
+      imp <- .self$impute()
+      dat <- quote(rbindlist(list(gdsData, imp),
+                       use.names = T)[,3:ncol(gdsData),with=F])
+    }
+    dosvd <- quote(
+      svd(eval(dat),
+      nv = ncol(gdsData)-2, nu = 0))
+
+    cat(sprintf("svd\n"))
+
+    with(eval(dosvd), {
+      exprSvd$d <<- d
+      dat <- as.matrix(eval(dat))
       cat(sprintf("projecting\n"))
-      gdssvd <<- data.table(tcrossprod(Matrix::as.matrix(gdsData[,3:ncol(gdsData),with=F]), rv))
-      }
+      exprSvd$XV <<- Matrix::tcrossprod(
+        # Matrix::Matrix(as.matrix(gdsData[,3:ncol(gdsData),with=F])),
+        Matrix::Matrix(dat),
+        Matrix::Matrix(v))
+      })
 
-    var_explained <<- data.frame(PCs = 1:length(sv),
-                                 Var = cumsum(sv/sum(sv)))
-    sl <- diff(var_explained[,"Var"])/diff(var_explained[,"PCs"])
 
-    n_pcs <<- max(which(sl > quantile(sl,slope)))
+    exprSvd$Var <<- data.frame(
+      PCs = 1:length(exprSvd$d),
+      Var = cumsum(exprSvd$d/sum(exprSvd$d)))
 
-    gdsRed <<- data.table(gdsData[,1:2, with=F],gdssvd[,1:n_pcs,with=F])
-    invisible(gdsRed)
+
+    sl <- diff(
+      exprSvd$Var[,"Var"])/diff(exprSvd$Var[,"PCs"])
+
+    n_pcs <<- max(
+      which(sl > quantile(sl,slope)))
+
+    invisible(exprSvd)
   }
 )

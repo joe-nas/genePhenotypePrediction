@@ -11,5 +11,5 @@ softparser <- function(filepath){
               na.strings = 'null', sep="\t", header = T,
               integer64 = "double",
               verbose = F)[, .SD,, by=c("ID_REF","IDENTIFIER")]
-  dt <- setkey(dt, IDENTIFIER, ID_REF)[]
-  return(dt[order(IDENTIFIER)][])}
+  setkey(dt, IDENTIFIER, ID_REF)[]
+  invisible(dt[order(IDENTIFIER)][])}
