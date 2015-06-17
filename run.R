@@ -1,99 +1,106 @@
 library(GEOmetadb)
-library(GEOquery)
+# library(GEOquery)
 library(plyr)
 library(data.table)
 library(caret)
 library(doMC)
-registerDoMC(10)
+library(exprt)
+registerDoMC(18)
 
-con <- dbConnect(SQLite(),'GEOmetadb.sqlite')
+# getSQLiteFile(destdir ="../genePhenotypePrediction/" )
+con <- dbConnect(SQLite(),'../genePhenotypePrediction/GEOmetadb.sqlite')
 gdsquery <- dbGetQuery(con,'SELECT sample_organism, gds, sample_count, gpl, value_type from gds WHERE (sample_organism="Homo sapiens" OR sample_organism="Mus musculus") AND (value_type="count" OR value_type="transformed count")')
 dbDisconnect(con)
 
-# table(dbGetQuery(con,'SELECT * from gds WHERE (sample_organism="Homo sapiens" OR sample_organism="Mus musculus")')$value_type)
+#
+# GAD <- fread("/scratch/jfalck/usr/rprojects/exprt/data/GADCDC/GADCDC_data.tsv",
+#              sep = "\t", header = T, )
+#
 
 
 gdsquery <- data.frame(lapply(gdsquery,function(x) gsub(" ","_",x)))
 gdsquery$sample_count <- as.integer(gdsquery$sample_count)
 gds <- Filter(function(x){sum(x$sample_count) >= 50},split(gdsquery, list(gdsquery$sample_organism, gdsquery$gpl, gdsquery$value_type),))
 
-soft2dt <- function(filepath){
-  require(data.table)
-  tmp <- readLines(filepath)
-  tmp <- tmp[(grep("^!dataset_table_begin", tmp)+1):(grep("^!dataset_table_end", tmp)-1)]
-  tmpcolumns <- unlist(strsplit(tmp[1],"\t"))
-  gsmcolumns <- sum(grepl("GSM",tmpcolumns))
-  dt <- fread(paste0(gsub("null","NA",tmp), collapse = "\n"),
-              colClasses = c(rep("character",length(tmpcolumns)-gsmcolumns),
-                             rep("numeric",gsmcolumns)), 
-              na.strings = 'null', sep="\t", header = T,
-              integer64 = "double",
-              verbose = F)[, .SD,, c("ID_REF","IDENTIFIER")]
-  return(dt)
-}
-
-
-setClassUnion("Expr.gds.dataTypes", c("list", "data.frame"))
-Expr <- setRefClass(Class = "Expr",
-                    fields = list(
-                      organism = "character",
-                      valueType = "character", 
-                      gpl = "character", 
-                      gds = "character",
-                      sampleCounts = "numeric", 
-                      gdsData = "Expr.gds.dataTypes",
-                      gdsRed = "data.table"),
-                    
-                    
-                    methods = list(
-                      download = function(){
-                        return()
-                        },
-                      load = function(){
-                        filepaths <- sprintf("%s/%s/%s/%s.soft.gz", 
-                                             organism, gpl, 
-                                             valueType, gds)
-                        filepaths <- Filter(file.exists, filepaths)
-                        gdsData <<- llply(filepaths, soft2dt,
-                                          .parallel = T)
-                        },
-                      merge = function(){
-                        gdsData <<- Reduce(function(x,y) x[y], gdsData)
-                      },
-                      impute = function(){
-                        if(is.data.table(gdsData)){
-                          preproc <- preProcess(gdsData[,3:ncol(gdsData),with=F], 
-                                                method = c("center","scale","medianImpute"))
-                          gdsRed <<- gdsData[,3:ncol(gdsData) := data.table(predict(preproc,gdsData[,3:ncol(gdsData),with=F])), with=F]
-                        }else if(is.list(gdsData)){
-                          cat("use $merge() before impute()")
-                        }},
-                      reduce = function(n_pcs = FALSE){
-                        gdssvd <- svd(gdsData[,3:ncol(gdsData), with = F], nv = ncol(gdsData)-2, nu = 0)
-                        var_explained <- data.table(PCs = 1:length(gdssvd$d), Var = cumsum(gdssvd$d/sum(gdssvd$d)))
-                        if(!n_pcs){
-                          slope <- diff(var_explained[,Var])/diff(var_explained[,PCs])
-                          n_pcs <- max(which(slope > quantile(slope,.90)))
-                        }
-                        gdsRed <<- data.table(gdsData[,1:2, with=F],data.table((as.matrix(gdsData[,3:ncol(gdsData),with=F]) %*% t(gdssvd$v))[,1:n_pcs]))
-                      }
-                      )
-)
 
 initializeExpr <- function(gds = "list"){
-  lapply(gds, function(o){ 
-    Expr( organism = gsub(" ","_",as.character(unique(o$sample_organism))),
-          valueType = gsub(" ","_",as.character(unique(o$value_type))),
-          gpl = as.character(unique(o$gpl)),
-          gds = as.character(unique(o$gds)),
-          sampleCounts = as.numeric(o$sample_counts))
+  lapply(gds, function(o){
+    new("Expr", organism = gsub(" ","_",as.character(unique(o$sample_organism))),
+        valueType = gsub(" ","_",as.character(unique(o$value_type))),
+        gpl = as.character(unique(o$gpl)),
+        gds = as.character(unique(o$gds)),
+        sampleCounts = as.integer(o$sample_count))
   })
 }
 
+
+
+# cleft_lip_genes <- toupper(GAD[DISEASE %like% "cleft lip",unique(GENE)])
+
+
+
 test <- initializeExpr(gds)
-l_ply(1:10,function(i){
-  test[[i]]$load()
-  test[[i]]$merge()
-  test[[i]]$impute()
-  test[[i]]$reduce()
-})
+
+
+analysis <- function(i){
+  plot(i$var_explained,
+       ylim = c(0,1))
+  abline(v = i$n_pcs)
+}
+#
+# library(pROC)
+#
+#
+# ho <- sample(cleft_lip_genes,80,replace = F)
+# train <- cleft_lip_genes[!cleft_lip_genes %in% ho]
+#
+# testl <- c("Homo_sapiens.GPL97.transformed_count","Homo_sapiens.GPL2895.count",
+#            "Homo_sapiens.GPL571.count","Homo_sapiens.GPL571.transformed_count",
+#            "Homo_sapiens.GPL96.transformed_count","Homo_sapiens.GPL97.count")
+
+tbd <- file.exists(paste(gsub("[.]","_",names(test)),"rds",sep="."))
+test <- test[!tbd]
+
+e <- new.env()
+e$dat <- ""
+doforall <- function(ds){
+  test[[ds]]$load()
+  test[[ds]]$merge(fbind = F)
+  # test[[ds]]$impute()
+  test[[ds]]$reduce()
+  test[[ds]]$exprSvd$save()
+#   e$dat <<- readRDS(paste(names(test)[ds],"rds.gz",sep = "."),compress="gzip")
+#   e$dat$reduce(.6)
+#   # test[[ds]]$save(names(test)[ds])
+#   e$dat$pred(train,666)
+#   e$dat$prediction[,.(IDENTIFIER,
+#                           "prediction" = prediction,
+#                           "pcs" = e$dat$n_pcs)][]
+}
+
+res <- l_ply(seq_along(test)[95:length(test)],doforall)
+
+#
+# rocfun <- function(i){
+#   plot(roc(res[[i]]$IDENTIFIER %in% ho, res[[i]]$prediction))
+# }
+#
+# total <- 20
+# for(i in 1:total){
+#   Sys.sleep(0.1)
+#   cat(i)
+#   # update GUI console
+#   flush.console()
+# }
+#
+#
+#
+#
+# tdt <- data.table::rbindlist(res)
+# tdt <- tdt[,.("prediction" = mean(prediction*pcs)/sum(pcs)),by=IDENTIFIER]
+#
+# plot(roc(tdt$IDENTIFIER %in% ho, tdt[,(prediction)]))
+
+
+
+mdat <- test[[4]]$gdsMissing[,3:ncol(test[[4]]$gdsMissing),with=F]
